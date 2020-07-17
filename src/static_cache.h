@@ -1,4 +1,6 @@
-// 顺序定长cache
+// 顺序cache
+// 	cache大小固定, 移除规则fifo，避免内存膨胀。
+//	适用于用户使用value做决策的场景，cache通常需要设到足够大。
 
 #include <map>
 #include <list>
@@ -17,7 +19,7 @@ public:
 	int put(const KEY& key, const VALUE& value);
 
 	// 获取
-	// 不更新热点，提供 cache 穿透功能
+	// 不更新热数据
 	// return: 0-队列中存在, output中的是取出的数据；
 	// 		   1-队列中不存在, output没有被赋值
 	int get(const KEY& key, VALUE& output);
