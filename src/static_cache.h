@@ -5,6 +5,7 @@
 #include <map>
 #include <list>
 #include <tuple>
+#include <mutex>
 
 namespace griyn { // griyn
 
@@ -31,6 +32,7 @@ private:
 	uint32_t _cap;
 	std::map<KEY, typename std::list<std::pair<KEY, VALUE>>::iterator> _index;
 	std::list<std::pair<KEY, VALUE>> _store;
+	std::mutex _mutex;
 };
 
 ////// implememt //////
@@ -38,6 +40,7 @@ template <typename KEY, typename VALUE>
 int StaticCache<KEY, VALUE>::put(const KEY& key, const VALUE& value) {
 	int ret = 0;
 
+	std::lock_guard<std::mutex> op_guard(_mutex);
 	auto index_find = _index.find(key);
 	if (index_find != _index.end()) {
 		// key 已存在，删除原数据，重新添加到队首
@@ -45,8 +48,8 @@ int StaticCache<KEY, VALUE>::put(const KEY& key, const VALUE& value) {
 		ret = 1;
 	}
 
-	_store.push_front({key, value});
-	_index.insert({key, _store.begin()});
+	_store.push_front({key, value});  // kv 发生拷贝
+	_index.insert({key, _store.begin()}); // k 拷贝
 
 	// 删除超过容量的队尾数据
 	if (size() > capacity()) {
@@ -59,12 +62,13 @@ int StaticCache<KEY, VALUE>::put(const KEY& key, const VALUE& value) {
 
 template <typename KEY, typename VALUE>
 int StaticCache<KEY, VALUE>::get(const KEY& key, VALUE& output) {
+	std::lock_guard<std::mutex> op_guard(_mutex);
 	auto index_find = _index.find(key);
 	if (index_find == _index.end()) {
 		return 1;
 	}
 
-	output = index_find->second->second;
+	output = index_find->second->second; // v 拷贝
 	return 0;
 }
 
