@@ -2,6 +2,7 @@
 #include <thread>
 #include <memory>
 #include "timed_queue.h"
+#include "shard_table.h"
 
 namespace griyn {
 
@@ -10,20 +11,22 @@ class ExpireCache {
 public:
 	ExpireCache(
 			uint32_t ttl_s, uint64_t capacity = -1, // TODO:size 
-			uint32_t timer_interval_s = 1) :
+			uint32_t timer_interval_s = 1,
+			uint32_t shard_num = 1) :
 		_ttl_s(ttl_s), _cap(capacity), 
-		_timer_interval_s(timer_interval_s), _running(true),
+		_timer_interval_s(timer_interval_s), 
+		_table(shard_num), _running(true),
 		_expire_timer(&ExpireCache<KEY, VALUE>::timer_work, this) {}
 
 	~ExpireCache();
 
 	// return:
-	// 		0 - 添加成功; 1 - 添加失败，key 重复
-	int put(const KEY& key, const VALUE& value);
+	// 		true - 添加成功; false - 添加失败，key 重复
+	bool put(const KEY& key, const VALUE& value);
 
 	// return:
-	// 		0 - 查找成功，value 有值；1 - 查找失败，value 未被赋值
-	int get(const KEY& key, VALUE& value);
+	// 		true - 查找成功，value 有值；false - 查找失败，value 未被赋值
+	bool get(const KEY& key, VALUE& value);
 
 	uint64_t size();
 
@@ -42,7 +45,7 @@ private:
 	std::thread _expire_timer;
 	bool _running;
 
-	std::unordered_map<KEY, VALUE> _table; // TODO: shard
+	ShardTable<KEY, VALUE> _table; // TODO: shard
 	
 	// 将 1s 内的 key 保存在一个 node 里，定期清理(timer_interval)
 	TimedQueue<KEY> _timed_queue;
@@ -50,30 +53,22 @@ private:
 
 ////// IMPLEMENT //////
 template <typename KEY, typename VALUE>
-int ExpireCache<KEY, VALUE>::put(const KEY& key, const VALUE& value) {
+bool ExpireCache<KEY, VALUE>::put(const KEY& key, const VALUE& value) {
 	// 不能允许添加重复 key
 	// 原因是 time_queue 不太好实现唯一 key
 	//  其实可以在 table 里加个引用计数解决，先作为todo吧
-	auto it = _table.find(key);
-	if (it != _table.end()) {	
-		return 1;
+	if (_table.put(key, value) == false) {
+		return false;
 	}
 
 	_timed_queue.put(key); // 保证时间队列 key 不重复
-	_table.insert({key, value});
 
-	return 0;
+	return true;
 }
 
 template <typename KEY, typename VALUE>
-int ExpireCache<KEY, VALUE>::get(const KEY& key, VALUE& value) {
-	auto it = _table.find(key);
-	if (it == _table.end()) {
-		return 1;
-	}
-
-	value = it->second;
-	return 0;
+bool ExpireCache<KEY, VALUE>::get(const KEY& key, VALUE& value) {
+	return _table.get(key, value);
 }
 
 template <typename KEY, typename VALUE>
