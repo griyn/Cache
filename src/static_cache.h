@@ -16,13 +16,13 @@ public:
     
     // 添加
     // return: 0-添加的是新数据
-    // 		   1-更新了旧数据
+    //         1-更新了旧数据
     int put(const KEY& key, const VALUE& value);
 
     // 获取
     // 不更新热数据
     // return: 0-队列中存在, output中的是取出的数据；
-    // 		   1-队列中不存在, output没有被赋值
+    //         1-队列中不存在, output没有被赋值
     int get(const KEY& key, VALUE& output);
 
     uint32_t capacity() { return _cap; }
