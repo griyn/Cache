@@ -22,8 +22,8 @@
 
 #define EXPECT_EQ(a, b) \
 if (a == b) \
-	std::cout << GREEN << "[OK] " << RESET << #a << " == " << #b << std::endl; \
+    std::cout << GREEN << "[OK] " << RESET << #a << " == " << #b << std::endl; \
 else \
-	std::cout << RED << "[FAIL] " << RESET << #a << " == " << #b << " > While " \
-		<< #a << "=" << a << ", " << #b << "=" << b << " in " \
-		<< __FILE__ << ":" << __LINE__ << std::endl;
+    std::cout << RED << "[FAIL] " << RESET << #a << " == " << #b << " > While " \
+        << #a << "=" << a << ", " << #b << "=" << b << " in " \
+        << __FILE__ << ":" << __LINE__ << std::endl;
